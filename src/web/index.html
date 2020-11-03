@@ -1,0 +1,209 @@
+<!DOCTYPE HTML>
+<!--
+	Hyperspace by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>VW Treffen Manager - Event Suche</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+		<!-- Header -->
+			<header id="header">
+				<a href="index.html" class="title">Suche</a>
+				<nav>
+					<ul>
+						<li><a href="index.html">Startseite</a></li>
+						<li><a href="suche.html" class="active">Suche</a></li>
+					</ul>
+				</nav>
+			</header>
+			<br>
+			<!-- Suche -->
+			<section id="main" class="wrapper">
+				<div class="inner">
+					<div class="split style1">
+						<section>
+							<div id="form-container"> 
+								<form id="cform" method="GET" action="https://api.vw-events.eu/api/v1/VWTreffen">
+									<div class="fields">
+										<div class="field half">
+											<label for="Monat">Monat (Default aktueller Monat)</label>
+											<select name="Monat" id="Monat">
+												<option value="Auswahl">- Auswahl -</option>
+												<option value="1">Januar</option>
+												<option value="2">Februar</option>
+												<option value="3">März</option>
+												<option value="4">April</option>
+												<option value="5">Mai</option>
+												<option value="6">Juni</option>
+												<option value="7">Juli</option>
+												<option value="8">August</option>
+												<option value="9">September</option>
+												<option value="10">Oktober</option>
+												<option value="11">November</option>
+												<option value="12">Dezember</option>
+											</select>
+										</div>
+										<div class="field half">
+											<label for="Jahr">Jahr (Default aktuelles Jahr)</label>
+											<input type="text" name="Jahr" id="Jahr" />
+										</div>
+										<div class="field half">
+											<label for="Anzahl">Anzahl</label>
+											<select name="Anzahl" id="Anzahl">
+												<option value="2">2</option>
+												<option value="4">4</option>
+												<option value="6">6</option>
+												<option value="8">8</option>
+												<option value="10">10</option>
+											</select>
+										</div>
+										<div class="field half">
+											<label for="Eventname">Eventname</label>
+											<input type="text" name="Eventname" id="Eventname" />
+										</div>
+									</div>	
+									<ul class="actions">
+										<li><input type="submit" value="submit"></li>
+									</ul>
+								</form>
+								<script src="assets/js/jquery.min.js"></script>
+								<script>
+									$("#cform").submit(function(event) {
+									  $('#error').html(``);
+
+									  event.preventDefault();
+
+									  var $form = $(this),
+										url = $form.attr('action');
+									  
+									  if($('#Jahr').val() === ""){
+										var d = new Date();
+										var Year = d.getFullYear();
+									  }else{
+										if(isNaN($('#Jahr').val())){
+											console.log("DAS")
+											var d = new Date();
+											var Year = d.getFullYear();
+											$('#error').html(`Das Datum muss eine Jahreszahl sein!<br>Es wurde automatisch ${Year} genommen.`);
+										}else{
+											var Year = $('#Jahr').val();
+										}
+									  }
+
+									  if($('#Monat').val() === "Auswahl"){
+										var d = new Date();
+										var Monat = d.getMonth() + 1;
+									  }else{
+										var Monat = $('#Monat').val();
+									  }
+									  var newDate = Monat + "/01/" + Year;
+									  var TimeUnix = new Date(newDate).getTime();
+
+									  var posting = $.get(url, {
+										limit: $('#Anzahl').val(),
+										timestamp: TimeUnix, 
+										eventname: $('#Eventname').val()
+									  });
+
+									  posting.done(function(data) {
+										var Sections = "";
+										data.rows.map(Event => {
+											let DatumZeit = Event.Zeit.split(" ");
+											if(Event.URI !== ""){
+												var URLHTML = `<a href="${Event.URI}">Eventseite</a>`
+											}else{
+												var URLHTML = ``
+											}
+											Sections = Sections + `<section> <span class="icon solid major fas ${Event.Icon}"></span> <h3>${Event.EventName}</h3> <p>Wann: <i>${Event.EventArt}</i> am <i>${DatumZeit[0]}</i> um <i>${DatumZeit[1]}</i> Uhr<br>Wo: <i>${Event.Adresse}</i></br>${Event.Beschreibung}<br><b>${URLHTML}</b></p> </section>`
+										});
+										$('#result').html(`Suche erfolgreich!<br>Es wurde/n ${data.rows.length} Ergebnis/e gefunden!`);
+										$("#container").html(Sections);
+									  });
+									  posting.fail(function(err) {
+										if(err.status === 400){
+											let RespArr = err.responseJSON.message.split('"');
+											function jsUcfirst(string) 
+												{
+													return string.charAt(0).toUpperCase() + string.slice(1);
+												}
+											/*Handle API request validation*/
+											if(RespArr[2].includes(" length must be less than or equal to ")){
+														if(RespArr[1].replace(/"/g,'',) === "evnetname"){
+															$('#result').text(`${jsUcfirst(RespArr[1].replace(/"/g,'',))} darf nicht länger als 256 Zeichen sein!`);
+														}else{
+															$('#result').text("Someting broken...");
+														}
+													}
+										}else if(err.status === 500){
+											if(err.responseJSON.error === "No data was found"){
+												$('#result').html(`Es wurden keine Events gefunden!`);
+												$("#container").html(`<section> <span class="icon solid major fas fa-exclamation-triangle"></span> <h3>Keine Events</h3> </br>Es konnten keine Events für die Zukunft geunden werden :(<b><br><a href="índex.html#TreffenErstellen">Erstelle jetzt ein neues Event</a></b></p> </section>`);
+											}
+											/*Handle API rate limiting*/
+										}else if(err.status === 503){
+											if(err.responseJSON.error === "Database error!"){
+												$('#result').html(`Interner Server Fehler!<brVersuchen sie es später.`);
+											}
+										}else if(err.status === 429){
+											$('#result').html('Zu viele Anfrage, bitte versuchen Sie es später erneut!');
+										}else{
+											$('#result').html('Unknown ERROR!');
+										}
+									  });
+									});
+									</script>
+							</div>
+						</section>
+						<section>
+							<div id="result"></div>
+							<br>
+							<div id="error"></div>
+						</section>
+					</div>
+				</div>
+			</section>
+			
+			<!-- Events -->
+			<section id="Events" class="wrapper style3 fade-up">
+				<div class="inner">
+					<h2>Events:</h2>
+					<p>Liste der gefundenen VW Treffen | Stammtische | Ausfahrten</p>
+					<div id="container" class="features">
+					</div>
+				</div>
+				<script src="assets/js/jquery.min.js"></script>
+				<script>
+					$(document).ready(function(){
+						$("button").click(function(){
+						   $("#container").append('<section><span class="icon solid major fas fa-car-side"></span><h3>KTN Nürnberg</h3><p>20.11.2020 14:00 Uhr<br>Beschreibung</p></section>');
+						});
+					});
+					</script>
+			</section>
+
+		<!-- Footer -->
+		<footer id="footer" class="wrapper style1-alt">
+			<div class="inner">
+				<ul class="menu">
+					<li>&copy; Untitled. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li><li>Projekt und Dokumentation: <a href="https://github.com/BolverBlitz/VWTreffen-Manager/">Github</a></li><li>Impressum und Datenschutz: <a href="https://api.vw-events.eu/lawstuff">Hier</a></li>
+				</ul>
+			</div>
+		</footer>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+	</body>
+</html>
