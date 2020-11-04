@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const fs = require('fs');
 const Joi = require('joi');
 
 const PluginConfig = {
@@ -33,12 +34,12 @@ const POSTlimiter = rateLimit({
 const router = express.Router();
 
 const schemaPost = Joi.object({
-  IPAddress: Joi.number().regex(/\b((?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:(?<!\.)\b|\.)){4}/).required(),
-  AnlagenName: Joi.string().regex(/^[a-z\d\s\-\.\,\ä\ü\ö\ß\&]*$/i).required(),
+  IPAddress: Joi.string().required().regex(/\b((?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:(?<!\.)\b|\.)){4}/),
+  AnlagenName: Joi.string().required().regex(/^[a-z\d\s\-\.\,\ä\ü\ö\ß\&]*$/i),
 });
 
 const schemaDelete = Joi.object({
-  IPAddress: Joi.number().regex(/\b((?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:(?<!\.)\b|\.)){4}/).required(),
+  IPAddress: Joi.string().required().regex(/\b((?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:(?<!\.)\b|\.)){4}/),
 });
 
 router.get('/', GETlimiter, async (reg, res, next) => {
