@@ -6,7 +6,7 @@
 -->
 <html>
 	<head>
-		<title>VW Treffen Manager - Event Suche</title>
+		<title>Endegs - Anlagen Status</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 		<link rel="stylesheet" href="assets/css/main.css" />
@@ -27,47 +27,19 @@
 					<div class="split style1">
 						<section>
 							<div id="form-container"> 
-								<form id="cform" method="GET" action="https://api.vw-events.eu/api/v1/VWTreffen">
+								<form id="cform" action="http://localhost:7500/api/v1/AnlagenScanner">
 									<div class="fields">
 										<div class="field half">
-											<label for="Monat">Monat (Default aktueller Monat)</label>
-											<select name="Monat" id="Monat">
-												<option value="Auswahl">- Auswahl -</option>
-												<option value="1">Januar</option>
-												<option value="2">Februar</option>
-												<option value="3">März</option>
-												<option value="4">April</option>
-												<option value="5">Mai</option>
-												<option value="6">Juni</option>
-												<option value="7">Juli</option>
-												<option value="8">August</option>
-												<option value="9">September</option>
-												<option value="10">Oktober</option>
-												<option value="11">November</option>
-												<option value="12">Dezember</option>
-											</select>
+											<label for="IPAdresse">IP Adresse</label>
+											<input type="text" name="IPAdresse" id="IPAdresse" />
 										</div>
 										<div class="field half">
-											<label for="Jahr">Jahr (Default aktuelles Jahr)</label>
-											<input type="text" name="Jahr" id="Jahr" />
-										</div>
-										<div class="field half">
-											<label for="Anzahl">Anzahl</label>
-											<select name="Anzahl" id="Anzahl">
-												<option value="2">2</option>
-												<option value="4">4</option>
-												<option value="6">6</option>
-												<option value="8">8</option>
-												<option value="10">10</option>
-											</select>
-										</div>
-										<div class="field half">
-											<label for="Eventname">Eventname</label>
-											<input type="text" name="Eventname" id="Eventname" />
+											<label for="AnlagenName">Anlagen Name</label>
+											<input type="text" name="AnlagenName" id="AnlagenName" />
 										</div>
 									</div>	
 									<ul class="actions">
-										<li><input type="submit" value="submit"></li>
+										<li><input type="submit" value="Hinzufügen"></li>
 									</ul>
 								</form>
 								<script src="assets/js/jquery.min.js"></script>
@@ -75,79 +47,52 @@
 									$("#cform").submit(function(event) {
 									  $('#error').html(``);
 
-									  event.preventDefault();
+										event.preventDefault();
 
-									  var $form = $(this),
+										var $form = $(this),
 										url = $form.attr('action');
-									  
-									  if($('#Jahr').val() === ""){
-										var d = new Date();
-										var Year = d.getFullYear();
-									  }else{
-										if(isNaN($('#Jahr').val())){
-											console.log("DAS")
-											var d = new Date();
-											var Year = d.getFullYear();
-											$('#error').html(`Das Datum muss eine Jahreszahl sein!<br>Es wurde automatisch ${Year} genommen.`);
-										}else{
-											var Year = $('#Jahr').val();
-										}
-									  }
-
-									  if($('#Monat').val() === "Auswahl"){
-										var d = new Date();
-										var Monat = d.getMonth() + 1;
-									  }else{
-										var Monat = $('#Monat').val();
-									  }
-									  var newDate = Monat + "/01/" + Year;
-									  var TimeUnix = new Date(newDate).getTime();
-
-									  var posting = $.get(url, {
-										limit: $('#Anzahl').val(),
-										timestamp: TimeUnix, 
-										eventname: $('#Eventname').val()
-									  });
-
-									  posting.done(function(data) {
-										var Sections = "";
-										data.rows.map(Event => {
-											let DatumZeit = Event.Zeit.split(" ");
-											if(Event.URI !== ""){
-												var URLHTML = `<a href="${Event.URI}">Eventseite</a>`
-											}else{
-												var URLHTML = ``
-											}
-											Sections = Sections + `<section> <span class="icon solid major fas ${Event.Icon}"></span> <h3>${Event.EventName}</h3> <p>Wann: <i>${Event.EventArt}</i> am <i>${DatumZeit[0]}</i> um <i>${DatumZeit[1]}</i> Uhr<br>Wo: <i>${Event.Adresse}</i></br>${Event.Beschreibung}<br><b>${URLHTML}</b></p> </section>`
+										
+										var posting = $.post(url, {
+													IPAddress: $('#IPAdresse').val(),
+													AnlagenName: $('#AnlagenName').val(),
 										});
-										$('#result').html(`Suche erfolgreich!<br>Es wurde/n ${data.rows.length} Ergebnis/e gefunden!`);
-										$("#container").html(Sections);
+									  	
+									  posting.done(function(data) {
+
+										$('#result').html(`Die Analge ${$('#AnlagenName').val()} wurde hinzugefügt.`);
+										//$("#container").html(Sections);
 									  });
 									  posting.fail(function(err) {
 										if(err.status === 400){
 											let RespArr = err.responseJSON.message.split('"');
+											console.log(RespArr)
 											function jsUcfirst(string) 
 												{
 													return string.charAt(0).toUpperCase() + string.slice(1);
 												}
 											/*Handle API request validation*/
-											if(RespArr[2].includes(" length must be less than or equal to ")){
-														if(RespArr[1].replace(/"/g,'',) === "evnetname"){
-															$('#result').text(`${jsUcfirst(RespArr[1].replace(/"/g,'',))} darf nicht länger als 256 Zeichen sein!`);
-														}else{
-															$('#result').text("Someting broken...");
-														}
-													}
+											if(RespArr[4].includes("fails to match the required pattern")){
+												if(RespArr[1].replace(/"/g,'',) === "IPAddress"){
+													$('#result').text(`${jsUcfirst(RespArr[1].replace(/"/g,'',))} ist eine ungültige IPv4 Adresse!`);
+													$('#IPAdresse').addClass("highlight");
+													setTimeout(function () {
+														$('#IPAdresse').removeClass('highlight');
+													}, 2000);
+												}else if(RespArr[1].replace(/"/g,'',) === "AnlagenName"){
+													$('#result').text(`Anlagen Name enthält unzulässige Zeichen!`);
+													$('#AnlagenName').addClass("highlight");
+													setTimeout(function () {
+														$('#AnlagenName').removeClass('highlight');
+													}, 2000);
+												}else{
+													$('#result').text("Someting broken...");
+												}
+											}
 										}else if(err.status === 500){
-											if(err.responseJSON.error === "No data was found"){
-												$('#result').html(`Es wurden keine Events gefunden!`);
-												$("#container").html(`<section> <span class="icon solid major fas fa-exclamation-triangle"></span> <h3>Keine Events</h3> </br>Es konnten keine Events für die Zukunft geunden werden :(<b><br><a href="índex.html#TreffenErstellen">Erstelle jetzt ein neues Event</a></b></p> </section>`);
+											if(err.responseJSON.error === "Duplicated Entry"){
+												$('#result').html(`Eine Anlage mit dieser IP ist schon eingetragen!`);
 											}
 											/*Handle API rate limiting*/
-										}else if(err.status === 503){
-											if(err.responseJSON.error === "Database error!"){
-												$('#result').html(`Interner Server Fehler!<brVersuchen sie es später.`);
-											}
 										}else if(err.status === 429){
 											$('#result').html('Zu viele Anfrage, bitte versuchen Sie es später erneut!');
 										}else{

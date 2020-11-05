@@ -55,19 +55,25 @@ router.get('/', GETlimiter, async (reg, res, next) => {
 
 router.post('/', POSTlimiter, async (reg, res, next) => {
   try {
-    const value = await schemaPost.validateAsync(reg.query);
+    const value = await schemaPost.validateAsync(reg.body);
     if(fs.existsSync(`${process.env.Anlagen_DB}/Anlagen.json`)){
       var AnlagenJson = JSON.parse(fs.readFileSync(`${process.env.Anlagen_DB}/Anlagen.json`));
       if(!AnlagenJson["IP"].includes(value.IPAddress)){
         AnlagenJson["AnlagenName"].push(value.AnlagenName);
         AnlagenJson["IP"].push(value.IPAddress);
-        
+
         let NewJson = JSON.stringify(AnlagenJson);
         fs.writeFile(`${process.env.Anlagen_DB}/Anlagen.json`, NewJson, (err) => {if (err) console.log(err);});
-      }else{
-        res.status(400);
+
+        res.status(200);
         res.json({
-          message: 'Duplicated Entry'
+          message: 'Anlage wurde gespeichert'
+        });
+
+      }else{
+        res.status(500);
+        res.json({
+          error: 'Duplicated Entry'
         });
       }
 
