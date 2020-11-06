@@ -21,6 +21,17 @@ if(!fs.existsSync(`${process.env.Anlagen_DB}/Anlagen.json`)){
 	console.log(`[API.Plugins] [${PluginName}] created DB`)
 }
 
+function removeItemFromArrayByName(arr) {
+  var what, a = arguments, L = a.length, ax;
+  while (L > 1 && arr.length) {
+      what = a[--L];
+      while ((ax= arr.indexOf(what)) !== -1) {
+          arr.splice(ax, 1);
+      }
+  }
+  return arr;
+}
+
 const GETlimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 100
@@ -53,7 +64,7 @@ router.get('/', GETlimiter, async (reg, res, next) => {
   }
 });
 
-router.post('/', POSTlimiter, async (reg, res, next) => {
+router.post('/add', POSTlimiter, async (reg, res, next) => {
   try {
     const value = await schemaPost.validateAsync(reg.body);
     if(fs.existsSync(`${process.env.Anlagen_DB}/Anlagen.json`)){
@@ -85,12 +96,34 @@ router.post('/', POSTlimiter, async (reg, res, next) => {
   }
 });
 
-router.delete('/', POSTlimiter, async (reg, res, next) => {
+router.post('/rem', POSTlimiter, async (reg, res, next) => {
   try {
-    const value = await schemaPost.validateAsync(reg.query);
+    const value = await schemaDelete.validateAsync(reg.body);
+    if(fs.existsSync(`${process.env.Anlagen_DB}/Anlagen.json`)){
+      var AnlagenJson = JSON.parse(fs.readFileSync(`${process.env.Anlagen_DB}/Anlagen.json`));
+      if(AnlagenJson["IP"].includes(value.IPAddress)){
+        let index = AnlagenJson["IP"].indexOf(value.IPAddress);
+					if (index > -1) {
+						AnlagenJson["AnlagenName"].splice(index, 1);
+					}
+        removeItemFromArrayByName(AnlagenJson["IP"], value.IPAddress)
 
+        let NewJson = JSON.stringify(AnlagenJson);
+        fs.writeFile(`${process.env.Anlagen_DB}/Anlagen.json`, NewJson, (err) => {if (err) console.log(err);});
 
+        res.status(200);
+        res.json({
+          message: 'Anlage wurde gespeichert'
+        });
 
+      }else{
+        res.status(500);
+        res.json({
+          error: 'IP not found'
+        });
+      }
+
+    }
   } catch (error) {
     next(error);
   }
