@@ -3,6 +3,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const Joi = require('joi');
+const ping = require('ping');
 
 const PluginConfig = {
 };
@@ -13,6 +14,48 @@ const PluginRequirements = [];
 const PluginVersion = '0.0.1';
 const PluginAuthor = 'BolverBlitz';
 const PluginDocs = '';
+
+//Global Vars
+var HasChanced = true;
+var AnlagenBuffer;
+var StatusListe;
+
+function UpdateStatus() {
+  var Promises = [];
+  if(HasChanced){
+    if(fs.existsSync(`${process.env.Anlagen_DB}/Anlagen.json`)){
+      AnlagenBuffer = JSON.parse(fs.readFileSync(`${process.env.Anlagen_DB}/Anlagen.json`));
+      HasChanced = false;
+    }
+  }
+  AnlagenBuffer["IP"].map(ipv4 => {
+    Promises.push(ping.promise.probe(ipv4))
+  });
+  var AliveNum = 0;
+  var NotAliveNum = 0;
+  var StatusArr = [];
+
+  Promise.all(Promises).then(function(PAll) {
+    PAll.map(Info => {
+        if(Info.alive){
+            //console.log(`Host:${Info.host} Ping:${Info.avg}ms`)
+            let index = AnlagenBuffer["IP"].indexOf(Info.host);
+            StatusArr.push({IP: Info.host, Name: AnlagenBuffer["AnlagenName"][index], Ping: Info.avg})
+            AliveNum++
+        }else{
+            NotAliveNum++
+        }
+    });
+    StatusListe = {
+      Timestamp: Date.now(),
+      Online: AliveNum,
+      Offline: NotAliveNum,
+      List: StatusArr
+    }
+  });
+}
+
+UpdateStatus()
 
 if(!fs.existsSync(`${process.env.Anlagen_DB}/Anlagen.json`)){
 	const CleanDB = {"AnlagenName":[],"IP":[]}
@@ -55,9 +98,16 @@ const schemaDelete = Joi.object({
 
 router.get('/', GETlimiter, async (reg, res, next) => {
   try {
-    const TimeNow = new Date().getTime();
-
-
+    if(typeof(StatusListe) === undefined){
+      res.status(500);
+    }else{
+      if(Date.now()-StatusListe.Timestamp <= (process.env.UpdateInterval*2)){
+        res.status(200);
+        res.json(StatusListe);
+      }else{
+        res.status(500);
+      }
+    }
 
   } catch (error) {
     next(error);
@@ -75,6 +125,7 @@ router.post('/add', POSTlimiter, async (reg, res, next) => {
 
         let NewJson = JSON.stringify(AnlagenJson);
         fs.writeFile(`${process.env.Anlagen_DB}/Anlagen.json`, NewJson, (err) => {if (err) console.log(err);});
+        HasChanced = true;
 
         res.status(200);
         res.json({
@@ -110,6 +161,7 @@ router.post('/rem', POSTlimiter, async (reg, res, next) => {
 
         let NewJson = JSON.stringify(AnlagenJson);
         fs.writeFile(`${process.env.Anlagen_DB}/Anlagen.json`, NewJson, (err) => {if (err) console.log(err);});
+        HasChanced = true;
 
         res.status(200);
         res.json({
@@ -137,3 +189,6 @@ module.exports = {
   PluginAuthor,
   PluginDocs
 };
+setInterval(function(){
+  UpdateStatus()
+}, process.env.UpdateInterval);

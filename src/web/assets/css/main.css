@@ -71,6 +71,11 @@ input, select, textarea {
 	appearance: none;
 }
 
+#partners .wrap {
+    width: 655px;
+    margin: auto;
+}
+
 @keyframes highlight {
     0% {
         background: #ffff99; 
@@ -3270,7 +3275,7 @@ input, select, textarea {
 		}
 
 		.wrapper.style3 {
-			background-color: #009927;
+			background-color: #0B3B39;
 		}
 
 		.wrapper.style3-alt {

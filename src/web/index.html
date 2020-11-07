@@ -21,6 +21,66 @@
 				</nav>
 			</header>
 			<br>
+
+			<!-- Anlagen -->
+			<section id="Anlagen" class="wrapper style3 fade-up">
+				<div class="inner">
+					<h2>Anlagenstatus:</h2>
+					<div id="StatusUpdater"></div>
+					<div id="container"></div>
+					<div id="Legend"></div>
+				</div>
+				<script src="assets/js/jquery.min.js"></script>
+				<script>
+					$(document).ready(function(){
+						const green = 200;
+						const yellow = 400;
+						const orange =  500;
+						setInterval(Update, 2000);
+						$("#Legend").html(`🟢 <= ${green}ms<br>🟡 <= ${yellow}ms<br>🟠 <= ${orange}ms<br>🔴 > ${orange}ms<br>`);
+						function Update() {
+							var TableHead = `<thead><tr><th>Status</th><th>Ping</th><th>Anlagenname</th></th><th>IP Adresse</th></tr></thead>`
+							var TableString = `<div class="table-wrapper"><table>${TableHead}`
+							var TableEnd = `</table></div>`;
+							var posting = $.get("http://localhost:7500/api/v1/AnlagenScanner", {
+							});
+							posting.done(function(data) {
+								data.List.map(State => {
+									let TableElement = `<tbody><tr><td>${PingColor(State.Ping)}</td><td>${State.Ping}ms</td><td>${State.Name}</td><td>IPv4: ${State.IP}</td></tr></tbody>`
+									TableString = TableString + TableElement
+								});
+
+								TableString = TableString + TableEnd
+								
+								$("#StatusUpdater").html(`Von ${data.Online+data.Offline} Anlagen sind ${data.Online} erreichbar und ${data.Offline} nicht erreichbar<br>Verzögerung ${Date.now()-data.Timestamp}ms<br><br>`);
+								$("#container").html(TableString);
+							});
+
+							posting.fail(function(err) {
+								$("#StatusUpdater").html(`Es konnte kein Update vom Backend geladen werden.`);
+								$("#container").html(`Error!`);
+								$('#StatusUpdater').addClass("highlight");
+								setTimeout(function () {
+									$('#StatusUpdater').removeClass('highlight');
+								}, 2000);
+							});
+						}
+						function PingColor(ping) {
+							console.log(typeof ping)
+							if(ping<=green){
+								return "🟢";
+							}else if(ping<=yellow){
+								return "🟡";
+							}else if(ping<=orange){
+								return "🟠";
+							}else{
+								return "🔴";
+							}
+						}
+					});
+					</script>
+			</section>
+
 			<!-- Suche -->
 			<section id="main" class="wrapper">
 				<div class="inner">
@@ -28,7 +88,7 @@
 					<div class="split style1">
 						<section>
 							<div id="form-container"> 
-								<p>Neue Anlage hinzufügen.</p>
+								<p>Neue Anlage hinzufügen:</p>
 								<form id="cform" action="http://localhost:7500/api/v1/AnlagenScanner/add">
 									<div class="fields">
 										<div class="field half">
@@ -120,7 +180,7 @@
 									});
 									</script>
 
-									<p>Anlage entfernen.</p>
+									<p>Anlage entfernen:</p>
 									<form id="dform" action="http://localhost:7500/api/v1/AnlagenScanner/rem">
 										<div class="fields">
 											<div class="field half">
@@ -199,34 +259,16 @@
 						<section>
 							<div id="result"></div>
 							<br>
-							<div id="error"></div>
 						</section>
 					</div>
 				</div>
-			</section>
-			
-			<!-- Events -->
-			<section id="Events" class="wrapper style3 fade-up">
-				<div class="inner">
-					<h2>Anlagenstatus:</h2>
-					<div id="container" class="features">
-					</div>
-				</div>
-				<script src="assets/js/jquery.min.js"></script>
-				<script>
-					$(document).ready(function(){
-						$("button").click(function(){
-						   $("#container").append('<section><span class="icon solid major fas fa-car-side"></span><h3>KTN Nürnberg</h3><p>20.11.2020 14:00 Uhr<br>Beschreibung</p></section>');
-						});
-					});
-					</script>
 			</section>
 
 		<!-- Footer -->
 		<footer id="footer" class="wrapper style1-alt">
 			<div class="inner">
 				<ul class="menu">
-					<li>&copy; Untitled. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li><li>Projekt und Dokumentation: <a href="https://github.com/BolverBlitz/VWTreffen-Manager/">Github</a></li><li>Impressum und Datenschutz: <a href="https://api.vw-events.eu/lawstuff">Hier</a></li>
+					<li>&copy; Untitled. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li><li>Creator: <a href="https://github.com/BolverBlitz">BolverBlitz</a></li><li>Projekt: <a href="https://github.com/EBG-PW/Endegs-AnlagenMonitor">Github</a></li><li>Impressum und Datenschutz: <a href="http://localhost:7500/lawstuff">Hier</a></li>
 				</ul>
 			</div>
 		</footer>
