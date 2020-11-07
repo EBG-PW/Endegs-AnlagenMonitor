@@ -4,7 +4,11 @@
   "description": "",
   "main": "./src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node ./src/index.js",
+    "build": "node ./build_html.js",
+    "env": "node ./create_env.js",
+    "all": "npm i && clear && node ./create_env.js && node build_html.js && clear && node ./src/index.js",
+    "all-win": "npm i && cls && node ./create_env.js && node build_html.js && cls && node ./src/index.js"
   },
   "repository": {
     "type": "git",
