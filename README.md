@@ -2,12 +2,14 @@
 A smal script that pings all given IPs and returns the status on a webpage.  
 
  ### Installation
- clone this repo   
- Run if you use Linux:
+ clone this repo  
+ Make sure nodeJS 12.x and NPM is installed!  
+   
+ If you use Linux run:
  ```json
  npm run all
   ```
-  Run if you use Windows:
+ If you use Windows run:
  ```json
  npm run all-win
   ```  
